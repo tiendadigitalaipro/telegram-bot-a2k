@@ -89,52 +89,18 @@ REGLAS DE ORO:
 
 MÉTODOS DE PAGO: Zelle, bolívares a tasa USDT (P2P), Binance USDT. Pide comprobante siempre."""
 
-SISTEMAS_TXT = (
-    "🖥️ *CATÁLOGO A2K DIGITAL STUDIO*\n\n"
-    "*SISTEMAS — $25 USD c/u* (licencia de por vida + soporte + instalación)\n\n"
-    "💈 Barbería Pro\n"
-    "💅 Nail Studio Pro\n"
-    "📦 Bodega Pro\n"
-    "💊 Farmacia Pro Plus\n"
-    "🛒 Mercado Logic Pro\n"
-    "🏍️ MotoTaller Pro\n"
-    "🍎 Frutería Pro\n"
-    "🔧 Ferretería A2K Pro\n"
-    "🦷 Zync Dental Pro\n"
-    "🍔 A2K Comandas\n"
-    "📊 A2K Financial Dashboard\n"
-    "🤖 Recepcionista AI (atiende 24/7)\n\n"
-    "*SERVICIOS A MEDIDA* (cotizamos según tu proyecto)\n"
-    "🌐 Landing pages · 🤖 Asistentes virtuales\n"
-    "🎙️ Bots de voz · ⚙️ Automatizaciones n8n\n\n"
-    "¿Cuál va con el negocio de tus sueños? 😊"
-)
-SERVICIOS_TXT = (
-    "🛠️ *SERVICIOS A2K DIGITAL STUDIO*\n\n"
-    "🌐 *Landing pages* — presencia profesional que vende por ti 24/7\n"
-    "🤖 *Asistentes virtuales* — atienden tus clientes por WhatsApp/web, contestan todo\n"
-    "🎙️ *Bots de voz* — recepción telefónica inteligente\n"
-    "⚙️ *Automatizaciones n8n* — publicaciones, respaldos, flujos de venta automáticos\n\n"
-    "Cada proyecto se cotiza según alcance. ¿Qué necesitas para tu empresa? 😊"
-)
-PAGOS_TXT = (
-    "💳 *MÉTODOS DE PAGO*\n\n"
-    "• Zelle 🇺🇸\n"
-    "• Binance (USDT)\n"
-    "• Bolívares a *tasa USDT* (P2P)\n\n"
-    "Los sistemas: $25 USD — pago único, tuyo de por vida.\n"
-    "Servicios a medida: cotización según proyecto.\n\n"
-    "¿Cuál te queda más fácil? Te paso los datos al momento 😊"
-)
-CONTACTO_TXT = (
-    "👤 *ASESOR A2K*\n\n"
-    "Habla directo con nuestro equipo:\n"
-    "👉 https://wa.me/584164117331\n\n"
-    "Te atendemos con gusto. 🙌"
-)
-
 conversations = {}
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
+def _responder(m, texto):
+    """Envía con Markdown y, si Telegram rechaza el formato, reintenta en plano."""
+    try:
+        bot.reply_to(m, texto, parse_mode='Markdown')
+    except Exception:
+        try:
+            bot.reply_to(m, texto)
+        except Exception as e2:
+            log.error(f"envio fallo: {e2}")
 
 def ask_deepseek(chat_id, text):
     hist = conversations.get(chat_id, [])
@@ -154,37 +120,16 @@ def ask_deepseek(chat_id, text):
         log.error(f"DeepSeek: {e}")
         return "😓 Problemita técnico. ¿Repetirme tu mensaje, por favor? 🙏"
 
-@bot.message_handler(commands=['start', 'hola'])
+@bot.message_handler(commands=['start'])
 def welcome(m):
     nombre = f" {m.from_user.first_name}" if m.from_user and m.from_user.first_name else ""
-    bot.reply_to(m,
+    _responder(m,
         f"🚀 *¡Bienvenido a A2K Digital Studio{nombre}!*\n\n"
         "Creamos los *sistemas y asistentes digitales* que hacen crecer negocios: "
         "puntos de venta, inventarios, páginas web, asistentes virtuales y automatizaciones. 🤖\n\n"
         "Tenemos un sistema listo para *cada rubro* — y si necesitas algo a tu medida, lo construimos.\n\n"
-        "¿Qué tipo de negocio tienes o qué quieres lograr? Te muestro la solución exacta 😎\n\n"
-        "_Tip: escribe /catalogo para ver todo_",
-        parse_mode='Markdown')
-
-@bot.message_handler(commands=['catalogo', 'sistemas'])
-def cmd_catalogo(m):
-    bot.reply_to(m, SISTEMAS_TXT, parse_mode='Markdown')
-
-@bot.message_handler(commands=['servicios'])
-def cmd_servicios(m):
-    bot.reply_to(m, SERVICIOS_TXT, parse_mode='Markdown')
-
-@bot.message_handler(commands=['precios', 'precio'])
-def cmd_precios(m):
-    bot.reply_to(m, SISTEMAS_TXT, parse_mode='Markdown')
-
-@bot.message_handler(commands=['pagos'])
-def cmd_pagos(m):
-    bot.reply_to(m, PAGOS_TXT, parse_mode='Markdown')
-
-@bot.message_handler(commands=['contacto'])
-def cmd_contacto(m):
-    bot.reply_to(m, CONTACTO_TXT, parse_mode='Markdown')
+        "¿Qué tipo de negocio tienes o qué quieres lograr? Escríbeme con confianza: "
+        "aquí no hay comandos ni botones raros — te leo y te respondo como una asesora real. 😎")
 
 @bot.message_handler(content_types=['text'])
 def on_text(m):
@@ -196,8 +141,13 @@ def on_text(m):
             "usuario": (m.from_user.first_name or "Cliente")[:30],
             "texto": text[:500], "hora": datetime.now().strftime('%H:%M:%S')})
         del clientes_mensajes[:-100]
+    else:
+        # Sin menú de comandos: lo que escriba con "/" se convierte en pregunta normal
+        text = text.lstrip('/').replace('_', ' ')
+        if text.lower().startswith('start'):
+            text = 'hola, quiero información'
     bot.send_chat_action(chat_id, 'typing')
-    bot.reply_to(m, ask_deepseek(chat_id, text), parse_mode='Markdown')
+    _responder(m, ask_deepseek(chat_id, text))
 
 @bot.message_handler(content_types=['voice', 'audio'])
 def on_audio(m):
@@ -205,6 +155,11 @@ def on_audio(m):
 
 def run_bot():
     log.info("Iniciando Bot A2K Systems (Vendedor)...")
+    try:
+        bot.delete_my_commands()
+        log.info("Menú de comandos eliminado — bot 100% conversacional")
+    except Exception as e:
+        log.warning(f"no se pudo borrar el menú: {e}")
     while True:
         try:
             bot.infinity_polling(timeout=60, long_polling_timeout=60)
