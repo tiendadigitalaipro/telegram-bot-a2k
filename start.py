@@ -260,6 +260,10 @@ def entregar_licencia(cliente_chat, admin_msg_id=None):
 # ── Handlers ──
 @bot.message_handler(commands=['start'])
 def welcome(m):
+    # Capturar fuente de procedencia (?start=grp_...) para saber qué grupo trae clientes
+    _partes = (m.text or '').split(maxsplit=1)
+    if len(_partes) > 1:
+        estado_cliente(m.chat.id)["fuente"] = _partes[1][:60]
     nombre = f" {m.from_user.first_name}" if m.from_user and m.from_user.first_name else ""
     estado_cliente(m.chat.id)["nombre"] = (m.from_user.first_name or "Cliente")[:40]
     _responder(m,
@@ -294,6 +298,7 @@ def on_photo(m):
         bot.send_photo(ADMIN_CHAT, m.photo[-1].file_id,
             caption=(f"💰 *CAPTURE DE PAGO*\n"
                      f"👤 Cliente: {st['nombre']} (chat `{m.chat.id}`)\n"
+                     f"📍 Fuente: {st.get('fuente', '(directo)')}\n"
                      f"📦 Sistema detectado: {nombre_sistema}\n"
                      f"📱💻 Dispositivo: {plat_txt}\n"
                      f"📝 Caption: {caption[:200] or '—'}\n\n"
