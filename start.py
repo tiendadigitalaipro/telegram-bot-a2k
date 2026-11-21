@@ -4,7 +4,13 @@
 A2K Digital Studio — Bot de Ventas de SISTEMAS (@zync_shop_bot)
 Vende: POS/inventarios, landing pages, asistentes virtuales, bots de voz,
 automatizaciones n8n. Cerebro DeepSeek + Flask keep-alive + /mensajes (voz).
-v1.0
+
+v2.0 — Flujo de venta con licencia REAL:
+  1) Aria conversa y detecta qué sistema quiere el cliente y en qué dispositivo (PC/celular)
+  2) El cliente envía el capture de pago → se reenvía al admin con botón de confirmación
+  3) El admin confirma → el bot crea la licencia en el License Engine (serie real)
+     y entrega al cliente el link oficial de entrega con su código
+  4) Licencia vinculada al dispositivo (anti-fraude) con migración gratuita vía panel
 """
 import os, time, threading, logging, base64
 import telebot, requests
@@ -17,6 +23,9 @@ load_dotenv()
 TELEGRAM_TOKEN = os.environ.get('BOT_TOKEN')
 DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
 NOTIF_KEY = os.environ.get('NOTIF_KEY', '')
+LICENSE_ADMIN_KEY = os.environ.get('LICENSE_ADMIN_KEY', '')  # clave del License Engine
+ADMIN_CHAT = int(os.environ.get('ADMIN_CHAT', '7579580673'))  # chat de Abigail
+ENGINE = 'https://a2k-license-engine.shoppingelectronics3112.workers.dev'
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -58,7 +67,17 @@ TU MÉTODO DE VENTA (siempre):
 2. DESCUBRE: qué necesita (vender más, ordenar inventario, atender clientes 24/7, presencia web).
 3. PRESENTA la solución exacta de catálogo con su precio.
 4. CONVENCE: manejo de objeciones — "está caro" → valor (paga una vez, es suyo, soporte incluido, multiplica ventas); "lo pienso" → cupos de implementación limitados; "no soy tecnológico" → lo instalamos y enseñamos TODO.
-5. CIERRA asumiendo: "¿con cuál arrancamos: Bodega o el de tu rubro?" o "¿cómo prefieres pagar: Zelle, Binance o Bs a tasa USDT?". Todo mensaje termina en pregunta que avance la venta.
+5. CIERRA asumiendo: "¿con cuál arrancamos: Bodega o el de tu rubro?".
+
+PREGUNTA CLAVE ANTES DE COBRAR: cuando el cliente diga que sí quiere comprar, pregunta SIEMPRE: "¿Lo vas a usar en una PC/laptop o en tu celular Android? Cada licencia es exclusiva para un tipo de dispositivo."
+
+PAGO: Métodos: Zelle, bolívares a tasa USDT (P2P), Binance USDT. Cuando el cliente diga que ya pagó, dile: "Perfecto, envíame aquí mismo el capture/foto del comprobante y en cuanto se confirme te entrego tu licencia con el link de instalación. Es automático y rápido."
+
+LICENCIA Y ENTREGA (informa con orgullo):
+- Licencia permanente, con soporte e instalación incluidos.
+- Se vincula al primer dispositivo donde se active (protección anti-fraude).
+- Si el cliente cambia de equipo, la migración es GRATIS (solo lo pide por WhatsApp).
+- Cliente con licencia activa: su SEGUNDA licencia cuesta solo $15 (en vez de $25).
 
 CATÁLOGO OFICIAL — SISTEMAS ($25 USD c/u, licencia de por vida + soporte):
 - 💈 Barbería Pro — turnos, servicios, caja, reportes
@@ -71,7 +90,6 @@ CATÁLOGO OFICIAL — SISTEMAS ($25 USD c/u, licencia de por vida + soporte):
 - 🔧 Ferretería A2K Pro — inventario por familias, cotizaciones
 - 🦷 Zync Dental Pro — clínica dental, insumos, citas
 - 🍔 A2K Comandas — comandas para restaurantes
-- 📊 A2K Financial Dashboard — finanzas personales/empresa
 - 🤖 Recepcionista AI — atiende clientes 24/7 por WhatsApp/web
 
 SERVICIOS A MEDIDA (cotización según proyecto):
@@ -81,24 +99,61 @@ SERVICIOS A MEDIDA (cotización según proyecto):
 - ⚙️ Automatizaciones n8n (flujos de ventas, respaldos, publicaciones)
 
 REGLAS DE ORO:
-- Precios SOLO del catálogo. Sistemas: $25 USD c/u. Servicios a medida: cotizar, nunca inventar precio.
+- Precios SOLO del catálogo. Sistemas: $25 USD c/u ($15 la segunda licencia). Servicios a medida: cotizar, nunca inventar precio.
 - Soporte e instalación incluidos. Licencia de por vida.
-- Los sistemas son apps/programs que el cliente usa en su PC o celular.
+- Los sistemas son apps que el cliente usa en su PC o celular Android.
 - Si pide algo fuera de catálogo o hablar con humano: asesor WhatsApp wa.me/584164117331
 - Nunca mientas sobre capacidades ni tiempos.
+- Tú NO entregas licencias ni links directamente: cuando llegue el comprobante, lo validan y se entrega automático. Dile eso al cliente."""
 
-MÉTODOS DE PAGO: Zelle, bolívares a tasa USDT (P2P), Binance USDT. Pide comprobante siempre."""
+# ── Estado de ventas pendientes (chat del cliente → lo que quiere comprar) ──
+# producto: id del sistema · plataforma: 'pc' | 'android' | None
+pendientes = {}   # chat_id -> {"producto": str|None, "plataforma": str|None, "nombre": str}
+esperando_plat = {}  # chat_id que debe responder PC/celular antes de generar
+
+PRODUCTOS_KW = {
+    'barberia': ['barbería', 'barberia', 'barbero', 'peluquería', 'peluquero', 'estilista'],
+    'nail': ['nail', 'uñas', 'manicure', 'manicura', 'pedicure', 'pedicura', 'spa de uñas'],
+    'bodega': ['bodega', 'bodegón', 'bodegon', 'minimarket', 'mini market', 'licorería'],
+    'farmacia': ['farmacia', 'farmacias', 'droguería'],
+    'mercado': ['mercado logic', 'abastos', 'supermercado', 'mercado'],
+    'motos': ['mototaller', 'moto taller', 'repuestos de moto', 'taller de motos'],
+    'fruteria': ['frutería', 'fruteria', 'verdulería', 'frutas y verduras'],
+    'ferreteria': ['ferretería', 'ferreteria'],
+    'dental': ['dental', 'dentista', 'odontología', 'odontologia', 'ortodoncia', 'clínica dental'],
+    'comandas': ['comandas', 'restaurante', 'menú digital', 'meseros', 'comida rápida'],
+    'recepcionista': ['recepcionista', 'asistente virtual', 'atienda clientes 24', 'secretaria virtual'],
+    'zync': ['zync electronics'],
+    'synthtrade': ['synthtrade'],
+    'fiadospro': ['fiadospro', 'control de fiados', 'cobrar fiados'],
+}
+NOMBRES_SISTEMAS = {
+    'barberia': 'Barbería Pro', 'nail': 'Nail Studio Pro', 'bodega': 'Bodega Pro v9',
+    'farmacia': 'Farmacia Pro', 'mercado': 'Mercado Logic Pro', 'motos': 'MotoTaller Pro',
+    'fruteria': 'Frutería Pro', 'ferreteria': 'Ferretería Zync Pro', 'dental': 'Zync Dental Pro',
+    'comandas': 'A2K Comandas', 'recepcionista': 'Recepcionista AI', 'zync': 'ZYNC Electronics',
+    'synthtrade': 'SynthTrade Pro', 'fiadospro': 'FiadosPro',
+}
+PLATAFORMA_LABEL = {'pc': '💻 PC / Laptop', 'android': '📱 Celular Android'}
 
 conversations = {}
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
 
 def _responder(m, texto):
-    """Envía con Markdown y, si Telegram rechaza el formato, reintenta en plano."""
     try:
         bot.reply_to(m, texto, parse_mode='Markdown')
     except Exception:
         try:
             bot.reply_to(m, texto)
+        except Exception as e2:
+            log.error(f"envio fallo: {e2}")
+
+def _enviar(chat_id, texto):
+    try:
+        bot.send_message(chat_id, texto, parse_mode='Markdown')
+    except Exception:
+        try:
+            bot.send_message(chat_id, texto)
         except Exception as e2:
             log.error(f"envio fallo: {e2}")
 
@@ -120,9 +175,92 @@ def ask_deepseek(chat_id, text):
         log.error(f"DeepSeek: {e}")
         return "😓 Problemita técnico. ¿Repetirme tu mensaje, por favor? 🙏"
 
+# ── Detección de intención (producto + dispositivo) ──
+def detectar_producto(texto):
+    t = texto.lower()
+    for prod, kws in PRODUCTOS_KW.items():
+        if any(k in t for k in kws):
+            return prod
+    return None
+
+def detectar_plataforma(texto):
+    t = texto.lower()
+    pc_words = ['pc', 'laptop', 'computadora', 'computador', 'escritorio', 'windows', 'notebook', 'equipo']
+    mob_words = ['celular', 'android', 'móvil', 'movil', 'teléfono', 'telefono', 'phone', 'moto g', 'samsung', 'xiaomi']
+    es_pc = any(w in t for w in pc_words)
+    es_mob = any(w in t for w in mob_words)
+    if es_mob and not es_pc: return 'android'
+    if es_pc and not es_mob: return 'pc'
+    return None
+
+def estado_cliente(chat_id):
+    return pendientes.setdefault(chat_id, {"producto": None, "plataforma": None, "nombre": ""})
+
+# ── Crear licencia en el Engine y entregar ──
+def crear_licencia_engine(producto, plataforma, cliente, telefono=''):
+    if not LICENSE_ADMIN_KEY:
+        return None, "LICENSE_ADMIN_KEY no configurada en Render"
+    try:
+        r = requests.post(f"{ENGINE}/crear",
+            headers={"Content-Type": "application/json", "X-Admin-Key": LICENSE_ADMIN_KEY},
+            json={"product": producto, "type": "pro", "cliente": cliente,
+                  "telefono": telefono, "plataforma": plataforma or ''},
+            timeout=30)
+        d = r.json()
+        if d.get('ok'):
+            return d, None
+        return None, d.get('error', 'error desconocido del engine')
+    except Exception as e:
+        return None, str(e)
+
+def entregar_licencia(cliente_chat, admin_msg_id=None):
+    """Genera la licencia con lo que hay en pendientes y se la entrega al cliente."""
+    st = estado_cliente(cliente_chat)
+    producto = st.get('producto')
+    plataforma = st.get('plataforma')
+
+    if not producto:
+        _enviar(ADMIN_CHAT, "⚠️ No sé qué sistema quiere el cliente. Pregúntale y vuelve a confirmar.")
+        return
+    if not plataforma:
+        # El admin confirmó pero falta el dispositivo → se lo preguntamos al cliente
+        esperando_plat[cliente_chat] = True
+        _enviar(cliente_chat,
+            "🎉 *¡Tu pago fue confirmado!* Antes de generar tu licencia, dime una cosa:\n\n"
+            "¿La vas a usar en una *PC/laptop* 💻 o en tu *celular Android* 📱?\n\n"
+            "Cada licencia es exclusiva para un tipo de dispositivo (así protegemos tu compra).")
+        _enviar(ADMIN_CHAT, "⏳ Le pregunté al cliente si es PC o celular. En cuanto responda, se genera la licencia automático.")
+        return
+
+    nombre_cliente = st.get('nombre') or 'Cliente'
+    lic, err = crear_licencia_engine(producto, plataforma, nombre_cliente)
+    if not lic:
+        _enviar(ADMIN_CHAT, f"❌ Error creando licencia: {err}")
+        return
+
+    link = lic.get('link') or f"{ENGINE}/p/{lic['key']}"
+    nombre_sistema = NOMBRES_SISTEMAS.get(producto, producto)
+    plat_txt = PLATAFORMA_LABEL.get(plataforma, 'tu dispositivo')
+
+    _enviar(cliente_chat,
+        f"🎉 *¡Tu licencia está lista!*\n\n"
+        f"📦 *{nombre_sistema}* — {plat_txt}\n"
+        f"🔑 Código: *{lic['key']}*\n\n"
+        f"🔗 *Link oficial de entrega:*\n{link}\n\n"
+        f"Ábrelo desde tu {plat_txt.split(' ',1)[1] if ' ' in plat_txt else 'dispositivo'}, copia el código y sigue los pasos — quedará activo en minutos.\n\n"
+        f"🛡️ Tu licencia es *permanente* y queda vinculada a tu equipo. Si algún día cambias de dispositivo, la migramos *gratis*.\n"
+        f"💜 Y recuerda: tu *segunda licencia* cuesta solo *$15*.\n\n"
+        f"¿Dudas con la instalación? Aquí estoy. 😊")
+    _enviar(ADMIN_CHAT,
+        f"✅ Licencia entregada\nCliente: {nombre_cliente}\nSistema: {nombre_sistema} ({plataforma})\nCódigo: {lic['key']}")
+    pendientes.pop(cliente_chat, None)
+    esperando_plat.pop(cliente_chat, None)
+
+# ── Handlers ──
 @bot.message_handler(commands=['start'])
 def welcome(m):
     nombre = f" {m.from_user.first_name}" if m.from_user and m.from_user.first_name else ""
+    estado_cliente(m.chat.id)["nombre"] = (m.from_user.first_name or "Cliente")[:40]
     _responder(m,
         f"🚀 *¡Bienvenido a A2K Digital Studio{nombre}!*\n\n"
         "Creamos los *sistemas y asistentes digitales* que hacen crecer negocios: "
@@ -131,9 +269,71 @@ def welcome(m):
         "¿Qué tipo de negocio tienes o qué quieres lograr? Escríbeme con confianza: "
         "aquí no hay comandos ni botones raros — te leo y te respondo como una asesora real. 😎")
 
+@bot.message_handler(content_types=['photo'])
+def on_photo(m):
+    """Capture de pago → reenviar al admin con botones de confirmación."""
+    st = estado_cliente(m.chat.id)
+    st["nombre"] = (m.from_user.first_name or "Cliente")[:40]
+
+    caption = m.caption or ''
+    prod = detectar_producto(caption)
+    plat = detectar_plataforma(caption)
+    if prod: st["producto"] = prod
+    if plat: st["plataforma"] = plat
+
+    nombre_sistema = NOMBRES_SISTEMAS.get(st["producto"], '❓ (preguntar cuál)')
+    plat_txt = PLATAFORMA_LABEL.get(st["plataforma"], '❓ (preguntar PC/celular)')
+
+    markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+    markup.add(
+        telebot.types.InlineKeyboardButton("✅ PAGO CONFIRMADO — GENERAR LICENCIA", callback_data=f"okpay:{m.chat.id}"),
+        telebot.types.InlineKeyboardButton("❌ Rechazar", callback_data=f"nopay:{m.chat.id}")
+    )
+    try:
+        bot.send_photo(ADMIN_CHAT, m.photo[-1].file_id,
+            caption=(f"💰 *CAPTURE DE PAGO*\n"
+                     f"👤 Cliente: {st['nombre']} (chat `{m.chat.id}`)\n"
+                     f"📦 Sistema detectado: {nombre_sistema}\n"
+                     f"📱💻 Dispositivo: {plat_txt}\n"
+                     f"📝 Caption: {caption[:200] or '—'}\n\n"
+                     f"Confirma solo si el dinero ya está en tu cuenta."),
+            parse_mode='Markdown', reply_markup=markup)
+        _responder(m,
+            "📩 ¡Recibido! Ya pasé tu comprobante a validación.\n\n"
+            "En cuanto se confirme tu pago te entrego *tu licencia con el link de instalación* aquí mismo. "
+            "Normalmente es cuestión de minutos. 🚀")
+    except Exception as e:
+        log.error(f"reenvio admin fallo: {e}")
+        _responder(m, "📩 Recibí tu comprobante. Te confirmo enseguida. 🙏")
+
+@bot.callback_query_handler(func=lambda c: c.data.startswith(('okpay:', 'nopay:')))
+def on_pago_decision(c):
+    accion, cliente_chat = c.data.split(':', 1)
+    cliente_chat = int(cliente_chat)
+    if c.from_user.id != ADMIN_CHAT:
+        bot.answer_callback_query(c.id, "⛔ Solo la admin confirma pagos.")
+        return
+    try:
+        bot.edit_message_reply_markup(ADMIN_CHAT, c.message.message_id, reply_markup=None)
+    except Exception:
+        pass
+    bot.answer_callback_query(c.id, "Procesado ✓")
+
+    if accion == 'okpay':
+        entregar_licencia(cliente_chat)
+    else:
+        _enviar(cliente_chat,
+            "😔 No logramos confirmar tu pago todavía.\n\n"
+            "Si ya pagaste, envíanos el comprobante por aquí de nuevo o escríbenos a wa.me/584164117331 "
+            "y lo revisamos al momento. 🙏")
+        _enviar(ADMIN_CHAT, "❌ Pago rechazado — se avisó al cliente para que lo revise.")
+
 @bot.message_handler(content_types=['text'])
 def on_text(m):
     chat_id, text = m.chat.id, m.text.strip()
+    st = estado_cliente(chat_id)
+    st["nombre"] = (m.from_user.first_name or st["nombre"] or "Cliente")[:40]
+
     if not text.startswith('/'):
         nid = int(time.time() * 1000)
         msg_counter[0] = max(nid, msg_counter[0] + 1)
@@ -141,11 +341,26 @@ def on_text(m):
             "usuario": (m.from_user.first_name or "Cliente")[:30],
             "texto": text[:500], "hora": datetime.now().strftime('%H:%M:%S')})
         del clientes_mensajes[:-100]
+
+        # ¿Es respuesta a "¿PC o celular?" tras pago confirmado?
+        if esperando_plat.get(chat_id):
+            plat = detectar_plataforma(text)
+            if plat:
+                st["plataforma"] = plat
+                esperando_plat.pop(chat_id, None)
+                entregar_licencia(chat_id)
+                return
+
+        # Detección normal de intención (la confirmación siempre la da el admin)
+        prod = detectar_producto(text)
+        plat = detectar_plataforma(text)
+        if prod: st["producto"] = prod
+        if plat: st["plataforma"] = plat
     else:
-        # Sin menú de comandos: lo que escriba con "/" se convierte en pregunta normal
         text = text.lstrip('/').replace('_', ' ')
         if text.lower().startswith('start'):
             text = 'hola, quiero información'
+
     bot.send_chat_action(chat_id, 'typing')
     _responder(m, ask_deepseek(chat_id, text))
 
@@ -153,8 +368,26 @@ def on_text(m):
 def on_audio(m):
     bot.reply_to(m, "😊 Por aquí no escucho audios todavía, pero escríbeme tu consulta y te atiendo de inmediato. 🚀")
 
+@bot.message_handler(content_types=['document', 'video'])
+def on_otros(m):
+    # Puede ser un comprobante en PDF o video
+    st = estado_cliente(m.chat.id)
+    try:
+        markup = telebot.types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            telebot.types.InlineKeyboardButton("✅ PAGO CONFIRMADO", callback_data=f"okpay:{m.chat.id}"),
+            telebot.types.InlineKeyboardButton("❌ Rechazar", callback_data=f"nopay:{m.chat.id}")
+        )
+        bot.send_message(ADMIN_CHAT,
+            f"📎 *ARCHIVO DE {st['nombre']}* (chat `{m.chat.id}`)\n"
+            f"Puede ser un comprobante de pago (PDF/video). Si es el pago, confirma aquí:",
+            parse_mode='Markdown', reply_markup=markup)
+        _responder(m, "📩 Recibido, ya lo pasé a validación. Te confirmo enseguida. 🚀")
+    except Exception as e:
+        log.error(f"archivo admin fallo: {e}")
+
 def run_bot():
-    log.info("Iniciando Bot A2K Systems (Vendedor)...")
+    log.info("Iniciando Bot A2K Systems v2.0 (Vendedor + Licencias)...")
     try:
         bot.delete_my_commands()
         log.info("Menú de comandos eliminado — bot 100% conversacional")
