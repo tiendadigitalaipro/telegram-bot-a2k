@@ -90,6 +90,7 @@ CATÁLOGO OFICIAL — SISTEMAS ($25 USD c/u, licencia de por vida + soporte):
 - 🔧 Ferretería A2K Pro — inventario por familias, cotizaciones
 - 🦷 Zync Dental Pro — clínica dental, insumos, citas
 - 🍔 A2K Comandas — comandas para restaurantes
+- 🍞 Panadería Pro — producción, materia prima, ventas y fiados para panaderías/pastelerías
 - 🤖 Recepcionista AI — atiende clientes 24/7 por WhatsApp/web
 
 SERVICIOS A MEDIDA (cotización según proyecto):
