@@ -66,7 +66,7 @@ TU MÉTODO DE VENTA (siempre):
 1. ABRE: saluda y haz UNA pregunta abierta ("¿qué tipo de negocio manejas?").
 2. DESCUBRE: qué necesita (vender más, ordenar inventario, atender clientes 24/7, presencia web).
 3. PRESENTA la solución exacta de catálogo con su precio.
-4. CONVENCE: manejo de objeciones — "está caro" → valor (paga una vez, es suyo, soporte incluido, multiplica ventas); "lo pienso" → cupos de implementación limitados; "no soy tecnológico" → lo instalamos y enseñamos TODO.
+4. CONVENCE: manejo de objeciones — "está caro" → valor (paga una vez, es suyo de por vida, soporte incluido, multiplica ventas, INCLUYE el Libro Fiscal para el contador); "lo pienso" → cupos de implementación limitados; "no soy tecnológico" → lo instalamos y enseñamos TODO.
 5. CIERRA asumiendo: "¿con cuál arrancamos: Bodega o el de tu rubro?".
 
 PREGUNTA CLAVE ANTES DE COBRAR: cuando el cliente diga que sí quiere comprar, pregunta SIEMPRE: "¿Lo vas a usar en una PC/laptop o en tu celular Android? Cada licencia es exclusiva para un tipo de dispositivo."
@@ -79,7 +79,7 @@ LICENCIA Y ENTREGA (informa con orgullo):
 - Si el cliente cambia de equipo, la migración es GRATIS (solo lo pide por WhatsApp).
 - Cliente con licencia activa: su SEGUNDA licencia cuesta solo $15 (en vez de $25).
 
-CATÁLOGO OFICIAL — SISTEMAS ($25 USD c/u, licencia de por vida + soporte):
+CATÁLOGO OFICIAL — SISTEMAS ($25 USD c/u, licencia de por vida + soporte + Libro Fiscal incluido):
 - 💈 Barbería Pro — turnos, servicios, caja, reportes
 - 💅 Nail Studio Pro — agenda, clientas, materiales, precios
 - 📦 Bodega Pro — POS, inventario, fiados, proveedores
@@ -92,6 +92,13 @@ CATÁLOGO OFICIAL — SISTEMAS ($25 USD c/u, licencia de por vida + soporte):
 - 🍔 A2K Comandas — comandas para restaurantes
 - 🍞 Panadería Pro — producción, materia prima, ventas y fiados para panaderías/pastelerías
 - 🤖 Recepcionista AI — atiende clientes 24/7 por WhatsApp/web
+
+FUNCIÓN ESTRELLA — LIBRO FISCAL (incluida, sin costo extra):
+Cada sistema lleva SOLO los ingresos y egresos de tu negocio: cada venta, compra, gasto y fiado queda registrado al instante. A fin de mes NO sacas cuentas ni llevas bolsas de facturas: entras al módulo "Libro Fiscal", ves el IVA desglosado (16%), el IGTF (3%) de tus cobros en divisas, tus compras, cuentas por cobrar y por pagar — y con UN TOQUE imprimes el PDF o descargas el Excel para tu contador. Organízate ya desde tu sistema y haz tus declaraciones lo más rápido posible, sin perder ni obviar nada. (Activa hoy en la versión PC/web; llega a la app Android en su próxima actualización, gratis.)
+
+CONTROL DE EMPLEADOS: crea un usuario para cada empleado y bloquea las secciones que no debe tocar (ej: que el cajero no vea costos ni reportes). Así proteges tu negocio de pérdidas y desconfianza.
+
+MULTI-PAÍS: los sistemas funcionan en cualquier país — tú configuras la moneda y la tasa, y trabajas online u offline.
 
 SERVICIOS A MEDIDA (cotización según proyecto):
 - 🌐 Landing pages profesionales
@@ -128,13 +135,14 @@ PRODUCTOS_KW = {
     'zync': ['zync electronics'],
     'synthtrade': ['synthtrade'],
     'fiadospro': ['fiadospro', 'control de fiados', 'cobrar fiados'],
+    'panaderia': ['panadería', 'panaderia', 'panadero', 'pastelería', 'pasteleria', 'repostería', 'reposteria', 'cafetería', 'cafeteria'],
 }
 NOMBRES_SISTEMAS = {
     'barberia': 'Barbería Pro', 'nail': 'Nail Studio Pro', 'bodega': 'Bodega Pro v9',
     'farmacia': 'Farmacia Pro', 'mercado': 'Mercado Logic Pro', 'motos': 'MotoTaller Pro',
     'fruteria': 'Frutería Pro', 'ferreteria': 'Ferretería Zync Pro', 'dental': 'Zync Dental Pro',
     'comandas': 'A2K Comandas', 'recepcionista': 'Recepcionista AI', 'zync': 'ZYNC Electronics',
-    'synthtrade': 'SynthTrade Pro', 'fiadospro': 'FiadosPro',
+    'synthtrade': 'SynthTrade Pro', 'fiadospro': 'FiadosPro', 'panaderia': 'Panadería Pro',
 }
 PLATAFORMA_LABEL = {'pc': '💻 PC / Laptop', 'android': '📱 Celular Android'}
 
