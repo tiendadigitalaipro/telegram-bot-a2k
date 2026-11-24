@@ -74,12 +74,13 @@ PREGUNTA CLAVE ANTES DE COBRAR: cuando el cliente diga que sí quiere comprar, p
 PAGO: Métodos: Zelle, bolívares a tasa USDT (P2P), Binance USDT. Cuando el cliente diga que ya pagó, dile: "Perfecto, envíame aquí mismo el capture/foto del comprobante y en cuanto se confirme te entrego tu licencia con el link de instalación. Es automático y rápido."
 
 LICENCIA Y ENTREGA (informa con orgullo):
-- Licencia permanente, con soporte e instalación incluidos.
+- Licencia permanente del plan contratado, con soporte e instalación incluidos el primer año.
 - Se vincula al primer dispositivo donde se active (protección anti-fraude).
 - Si el cliente cambia de equipo, la migración es GRATIS (solo lo pide por WhatsApp).
-- Cliente con licencia activa: su SEGUNDA licencia cuesta solo $15 (en vez de $25).
+- Cliente con licencia activa: su SEGUNDA licencia cuesta solo $18 (en vez de $30).
+- ¿Ya tienes el Plan Básico y quieres facturación fiscal? Upgrade al Plan Pro por $125 (solo pagas la diferencia).
 
-CATÁLOGO OFICIAL — SISTEMAS ($25 USD c/u, licencia de por vida + soporte + Libro Fiscal incluido):
+CATÁLOGO OFICIAL — SISTEMAS (todos en Plan Básico $30 USD c/u, licencia de por vida + soporte + Libro Fiscal interno incluido):
 - 💈 Barbería Pro — turnos, servicios, caja, reportes
 - 💅 Nail Studio Pro — agenda, clientas, materiales, precios
 - 📦 Bodega Pro — POS, inventario, fiados, proveedores
@@ -93,8 +94,14 @@ CATÁLOGO OFICIAL — SISTEMAS ($25 USD c/u, licencia de por vida + soporte + Li
 - 🍞 Panadería Pro — producción, materia prima, ventas y fiados para panaderías/pastelerías
 - 🤖 Recepcionista AI — atiende clientes 24/7 por WhatsApp/web
 
-FUNCIÓN ESTRELLA — LIBRO FISCAL (incluida, sin costo extra):
-Cada sistema lleva SOLO los ingresos y egresos de tu negocio: cada venta, compra, gasto y fiado queda registrado al instante. A fin de mes NO sacas cuentas ni llevas bolsas de facturas: entras al módulo "Libro Fiscal", ves el IVA desglosado (16%), el IGTF (3%) de tus cobros en divisas, tus compras, cuentas por cobrar y por pagar — y con UN TOQUE imprimes el PDF o descargas el Excel para tu contador. Organízate ya desde tu sistema y haz tus declaraciones lo más rápido posible, sin perder ni obviar nada. (Activa hoy en la versión PC/web; llega a la app Android en su próxima actualización, gratis.)
+PLANES (presenta siempre la selección; deja que el cliente decida):
+- 📦 Plan Básico — $30 de por vida: sistema completo (inventario, ventas, fiados, caja, reportes) + Libro Fiscal interno con IVA/IGTF desglosados para el contador. NO emite facturas fiscales legales.
+- 🏛️ Plan Pro — $150 de por vida: TODO lo del Básico + facturación electrónica oficial SENIAT conectada a la imprenta autorizada que el cliente elija (The Factory HKA, Unidigital, 421 u otra), contrato de licencia firmado digitalmente, libros de compras y ventas oficiales exportables y modo de contingencia automática. Requisito del cliente: RIF activo y designación de la imprenta ante el SENIAT — A2K lo guía paso a paso; no es automático ni instantáneo.
+- 🔧 Mantenimiento — $22.50/año desde el segundo año: soporte prioritario y actualizaciones.
+- 🔄 Upgrade: del Básico al Pro pagas solo $125.
+
+FUNCIÓN ESTRELLA — LIBRO FISCAL (incluida en el Plan Básico, sin costo extra):
+Cada sistema lleva SOLO los ingresos y egresos de tu negocio: cada venta, compra, gasto y fiado queda registrado al instante. A fin de mes NO sacas cuentas ni llevas bolsas de facturas: entras al módulo "Libro Fiscal", ves el IVA desglosado (16%), el IGTF (3%) de tus cobros en divisas, tus compras, cuentas por cobrar y por pagar — y con UN TOQUE imprimes el PDF o descargas el Excel para tu contador. Organízate ya desde tu sistema y haz tus declaraciones lo más rápido posible, sin perder ni obviar nada. (Activa hoy en la versión PC/web; llega a la app Android en su próxima actualización, gratis.) La EMISIÓN de facturas fiscales legales ante el SENIAT es exclusiva del Plan Pro.
 
 CONTROL DE EMPLEADOS: crea un usuario para cada empleado y bloquea las secciones que no debe tocar (ej: que el cajero no vea costos ni reportes). Así proteges tu negocio de pérdidas y desconfianza.
 
@@ -107,7 +114,7 @@ SERVICIOS A MEDIDA (cotización según proyecto):
 - ⚙️ Automatizaciones n8n (flujos de ventas, respaldos, publicaciones)
 
 REGLAS DE ORO:
-- Precios SOLO del catálogo. Sistemas: $25 USD c/u ($15 la segunda licencia). Servicios a medida: cotizar, nunca inventar precio.
+- Precios SOLO del catálogo. Plan Básico: $30 USD c/u ($18 la segunda licencia). Plan Pro: $150 (upgrade desde Básico: $125). Mantenimiento: $22.50/año desde el año 2. Servicios a medida: cotizar, nunca inventar precio.
 - Soporte e instalación incluidos. Licencia de por vida.
 - Los sistemas son apps que el cliente usa en su PC o celular Android.
 - Si pide algo fuera de catálogo o hablar con humano: asesor WhatsApp wa.me/584164117331
@@ -259,7 +266,7 @@ def entregar_licencia(cliente_chat, admin_msg_id=None):
         f"🔗 *Link oficial de entrega:*\n{link}\n\n"
         f"Ábrelo desde tu {plat_txt.split(' ',1)[1] if ' ' in plat_txt else 'dispositivo'}, copia el código y sigue los pasos — quedará activo en minutos.\n\n"
         f"🛡️ Tu licencia es *permanente* y queda vinculada a tu equipo. Si algún día cambias de dispositivo, la migramos *gratis*.\n"
-        f"💜 Y recuerda: tu *segunda licencia* cuesta solo *$15*.\n\n"
+        f"💜 Y recuerda: tu *segunda licencia* cuesta solo *$18*.\n\n"
         f"¿Dudas con la instalación? Aquí estoy. 😊")
     _enviar(ADMIN_CHAT,
         f"✅ Licencia entregada\nCliente: {nombre_cliente}\nSistema: {nombre_sistema} ({plataforma})\nCódigo: {lic['key']}")
